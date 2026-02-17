@@ -5,7 +5,7 @@ Este arquivo é operacional: atualize sempre que confirmar algo novo (fotos, dum
 
 ---
 
-## Metadados (inicie o arquivo com estes para indexação rápida)
+## Metadados 
 Board: GA36-MB
 Revision: V1.1 (2025-10-25)
 SoC: Allwinner A33
@@ -27,7 +27,7 @@ State: boot funcional, SD backup realizado
 
 ---
 
-## Fotos (adicione os arquivos em `/images` com estes nomes)
+## Fotos 
 Tire exatamente estas fotos, sem desmontar mais do que o necessário:
 
 - `images/pcb_front.jpg` — placa inteira (referência de layout)  
@@ -52,7 +52,7 @@ Adicione legendas breves nas imagens no repositório (ex: `soc_allwinner_a33.jpg
 
 ---
 
-## Provas técnicas que confirmam Allwinner A33 (cole saídas em `dumps/bootlogs/`)
+## Provas técnicas que confirmam Allwinner A33 
 - `/proc/cpuinfo` mostrando `sun8i` / Allwinner identificador.  
 - `uname -a` indicando kernel sunxi (ex.: `3.4.39` no dump).  
 - `dmesg` reportando Mali-400 ou strings `sunxi`.  
@@ -61,7 +61,7 @@ Adicione legendas breves nas imagens no repositório (ex: `soc_allwinner_a33.jpg
 
 ---
 
-## Layout de partições (base: autópsia pública — confirme com seus dumps)
+## Layout de partições 
 (salve as saídas em `dumps/partitions/`)
 
 Exemplo (autópsia V1.0 — comparar com sua mídia):
@@ -82,7 +82,7 @@ img8: overlay rw (~1.5 GB) → userdata / configs / cores
 
 ---
 
-## Comandos essenciais (execute no dispositivo em execução e salve em `dumps/bootlogs/`)
+## Comandos essenciais 
 Execute **exatamente** estes comandos e commite as saídas:
 
 ```bash
