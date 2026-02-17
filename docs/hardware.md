@@ -1,88 +1,98 @@
-# Hardware Overview — GA36-MB (V1.1) — documentação local
+# Hardware — GA36-MB (V1.1) — documentação local
 
-**Propósito:** consolidar fatos confirmados sobre a placa que você abriu (GA36-MB V1.1-20251025) e ligar esses fatos à autópsia publicada (V1.0). Documento operacional: atualizar sempre que confirmar algo novo.
-
----
-
-## Metadados
-- **Board:** GA36-MB  
-- **Revisão (este dispositivo):** V1.1 (`GA36-MB V1.1-20251025`) — confirmado por silk na PCB (foto).  
-- **Referência externa:** R36S console clone autopsy (GA36-MB V1.0) — ver `reference_autopsy.md`.  
-- **SoC:** Allwinner A33 (ARM Cortex-A7, quad-core) — CONFIRMADO.  
-- **Firmware stock:** EmuELEC ES v4.7 (build `GA36-UDT-EE-TF-R-20250818`) — CONFIRMADO.  
-- **Boot:** a partir de microSD (bootimg + script.bin / partições conforme autopsy) — CONFIRMADO.  
-- **Estado atual do dispositivo:** Boot funcional; backup do SD feito.
+**Propósito:** reunir de forma concisa e verificável tudo o que sabemos sobre a placa do console que você abriu (GA36-MB V1.1).  
+Este arquivo é operacional: atualize sempre que confirmar algo novo (fotos, dumps, leituras).
 
 ---
 
-## Componentes identificados (fotos em `/images/`)
-- **SoC:** Allwinner A33 (posicionado centro-superior) — foto: `images/ga36_mb_v1.1_soc.jpg` (adicione).  
-- **Memória RAM:** 2x chips DDR3 ao lado do SoC — ler marca/modelo nas fotos macro (ACTION).  
-- **Conector de display:** FPC central acima dos botões.  
-- **Speaker:** integrado (centro) com conector `SPK`.  
-- **Conector de bateria:** JST (marcado `BAT`).  
-- **Entradas:** dois módulos analógicos (joysticks), múltiplos botões (soldados diretamente).  
-- **Portas externas:** microSD, micro-USB OTG, porta DC (inferior).  
-- **Silk/Pads relevantes:** marcações `GND TX RX` perto do topo (possível pad serial) — CONFIRMAR com foto macro.
+## Metadados (inicie o arquivo com estes para indexação rápida)
+Board: GA36-MB
+Revision: V1.1 (2025-10-25)
+SoC: Allwinner A33
+OS_stock: EmuELEC 4.7 (build GA36-UDT-EE-TF-R-20250818)
+Boot: microSD (bootimg + script.bin)
+State: boot funcional, SD backup realizado
+
 
 ---
 
-## Diferenças importantes vs autópsia (V1.0)
-- **Revisão:** você tem V1.1; autópsia principal documenta V1.0.  
-- **Risco:** V1.1 pode ter variações em pinos GPIO, enable pins de backlight/áudio ou reguladores. Não assumir compatibilidade elétrica completa.  
-- **Oportunidade:** a autópsia contém dumps e recovery image que provavelmente funcionam como baseline; usar como referência reduz risco.
+## Identificação e resumo curto
+
+- **Placa:** `GA36-MB`  
+- **Revisão confirmada nesta unidade:** **V1.1** (`GA36-MB V1.1-20251025`) — confirmado pelo silk na PCB.  
+- **SoC real (comportamento confirmado):** :contentReference[oaicite:0]{index=0} A33 (ARM Cortex-A7, quad-core).  
+- **Observação importante sobre remarking:** o encapsulamento do chip pode trazer silk indicando outro fornecedor (ex.: Rockchip), mas o comportamento do boot/kernel/GPU confirma Allwinner A33 (ver seção "Provas").  
+- **Firmware stock:** :contentReference[oaicite:1]{index=1} 4.7 — custom build para A33.  
+- **Boot:** a imagem usa formato Android `bootimg` (kernel + ramdisk) e **script.bin** (Allwinner legacy) — **não** DTB padrão.
 
 ---
 
-## Partições / storage (confirmar com comandos)
-**A fazer agora** (cole as saídas em `dumps/partitions/`):
-- `lsblk -o NAME,SIZE,FSTYPE,LABEL,PARTUUID,MOUNTPOINT`  
-- `blkid`  
-- `sudo fdisk -l /dev/sdX` (no PC, SD inserido)
+## Fotos (adicione os arquivos em `/images` com estes nomes)
+Tire exatamente estas fotos, sem desmontar mais do que o necessário:
 
-**O que esperamos (segundo autopsy):**
-- pequena partição FAT (~32M) com `script.bin` / boot resources
-- partição raw com U-Boot config
-- boot partition com Android bootimg (kernel+ramdisk)
-- SYSTEM squashfs
-- partition overlay rw (configs, logs, cores)
+- `images/pcb_front.jpg` — placa inteira (referência de layout)  
+- `images/soc_allwinner_a33.jpg` — close do SoC (leitura do silk)  
+- `images/ram_ddr_chips.jpg` — close dos chips de RAM (leitura do silk)  
+- `images/serial_pads.jpg` — pads TX/RX/GND (ou área suspeita)  
+- `images/display_fpc.jpg` — conector FPC do display
 
-*(Não sobrescrever, apenas ler e salvar dumps.)*
+Adicione legendas breves nas imagens no repositório (ex: `soc_allwinner_a33.jpg — silk lido: ...`).
 
 ---
 
-## Boot / Kernel / DTB
-- **Kernel detectado no autopsy:** Linux `3.4.39` (sunxi).  
-- **Formato de DTB:** sistema usa `script.bin` / `magic.bin` (Allwinner legacy) — **sem DTB separado** no sentido moderno.  
-- **Implicação:** port para kernel moderno ou deploy de DarkOS requer (A) manter bootimg/script.bin ou (B) converter/recriar DTB e adaptar bootchain. Ambas ações têm trabalho não trivial.
+## Componentes identificados (estado atual)
+- **SoC:** Allwinner A33 — CONFIRMADO por logs e comportamento do sistema.  
+- **GPU:** Mali-400 — detectado nos logs do EmuELEC.  
+- **Memória:** 2 × chips DDR3 (leitura dos modelos pendente).  
+- **Armazenamento:** slot microSD (boot a partir do SD).  
+- **Display:** interface FPC (timings não confirmados).  
+- **Entradas:** 2 analógicos + botões (GPIO) — mapeamento não documentado.  
+- **Áudio:** speaker mono (pino de enable pode ser dependente do DTB/script.bin).  
+- **Pads de debug/serial:** existe área com pads próximos ao topo — confirmar TX/RX/GND com foto macro.
 
 ---
 
-## Pontos para confirmar (checklist imediato)
-Coloque resultados em `dumps/` e atualize esse arquivo:
+## Provas técnicas que confirmam Allwinner A33 (cole saídas em `dumps/bootlogs/`)
+- `/proc/cpuinfo` mostrando `sun8i` / Allwinner identificador.  
+- `uname -a` indicando kernel sunxi (ex.: `3.4.39` no dump).  
+- `dmesg` reportando Mali-400 ou strings `sunxi`.  
 
-- [ ] Foto macro do SoC com leitura do ID do chip.  
-- [ ] Foto macro dos chips de RAM com marca/modelo.  
-- [ ] Localizar pads TX/RX/GND (serial) e tirar foto (marcar coordenada aproximada na PCB).  
-- [ ] `cat /proc/cpuinfo` (quando rodar EmuELEC) → salvar em `dumps/bootlogs/cpuinfo.txt`.  
-- [ ] `uname -a` → salvar em `dumps/bootlogs/uname.txt`.  
-- [ ] `dmesg > dumps/bootlogs/dmesg.txt`.  
-- [ ] `ls /lib/modules -la > dumps/kernel/modules_list.txt`.  
-- [ ] `lsblk`, `blkid`, `fdisk -l` do SD (no PC) → salvar em `dumps/partitions/`.
+> Se as três saídas acima existirem, considerar remarking: silk do chip NÃO é fonte definitiva.
 
 ---
 
-## Comandos recomendados (cole saídas em `dumps/`)
-Executar no EmuELEC/console (ou chroot se extrair SYSTEM):
+## Layout de partições (base: autópsia pública — confirme com seus dumps)
+(salve as saídas em `dumps/partitions/`)
+
+Exemplo (autópsia V1.0 — comparar com sua mídia):
+img1: FAT32 grande (~ROMs) → roms / saves
+
+img2: FAT16 / small (~32 MB) → magic.bin / boot resources
+
+img5: raw (~16 MB) → uboot config (raw)
+
+img6: bootimg (~32 MB) → Android bootimg (kernel + ramdisk)
+
+img7: SYSTEM squashfs (~768 MB) → EmuELEC SYSTEM
+
+img8: overlay rw (~1.5 GB) → userdata / configs / cores
+
+
+**ATENÇÃO:** Não sobrescrever ou formatar essas partições sem backup bit-a-bit.
+
+---
+
+## Comandos essenciais (execute no dispositivo em execução e salve em `dumps/bootlogs/`)
+Execute **exatamente** estes comandos e commite as saídas:
 
 ```bash
-# no sistema em execução:
+mkdir -p dumps/bootlogs dumps/partitions
 cat /proc/cpuinfo > dumps/bootlogs/cpuinfo.txt
 uname -a > dumps/bootlogs/uname.txt
 dmesg > dumps/bootlogs/dmesg.txt
 ls /lib/modules -la > dumps/bootlogs/modules.txt
+No PC com o SD inserido (substitua /dev/sdX pelo seu dispositivo):
 
-# no PC com SD montado:
 lsblk -o NAME,SIZE,FSTYPE,LABEL,PARTUUID,MOUNTPOINT > dumps/partitions/lsblk.txt
 blkid > dumps/partitions/blkid.txt
 sudo fdisk -l /dev/sdX > dumps/partitions/fdisk.txt
