@@ -38,6 +38,22 @@ O comportamento elétrico, o kernel, o bootloader e a GPU confirmam que **não s
 
 ---
 
+## 📚 Documentação
+
+| Documento | Assunto |
+|---|---|
+| [docs/scope.md](docs/scope.md) | O que está dentro e fora do escopo, e o critério de "confirmado" |
+| [docs/hardware.md](docs/hardware.md) | Componentes, provas técnicas e fotos da placa |
+| [docs/boot-chain.md](docs/boot-chain.md) | Cadeia de boot completa e por que cada elo importa |
+| [docs/device-tree.md](docs/device-tree.md) | `script.bin` legado — o que é e por que não dá para "só trocar o DTB" |
+| [docs/kernel.md](docs/kernel.md) | Kernel sunxi 3.4.x, como confirmar e por que não recompilar |
+| [docs/storage.md](docs/storage.md) | Layout de partições e como fazer backup do SD corretamente |
+| [docs/darkos-expectations.md](docs/darkos-expectations.md) | O que faltaria para um port real acontecer |
+| [failures.md](failures.md) | Registro de falhas — leia antes de tentar qualquer coisa |
+| [reference/autopsy/](reference/autopsy) | Catálogo dos artefatos da autópsia de referência |
+
+---
+
 ## 🎯 Objetivos do projeto
 
 Este projeto existe para:
@@ -56,14 +72,19 @@ Portar sistemas modernos (ex: DarkOS) **não é objetivo imediato** e só será 
 
 ```text
 /
-├─ README.md                → Visão geral do projeto
-├─ hardware.md              → Documentação detalhada do hardware
+├─ README.md                   → Visão geral do projeto
+├─ failures.md                 → Registro de falhas e becos sem saída
 ├─ docs/
-│  └─ reference_autopsy.md  → Resumo da autópsia externa (terceiros)
-├─ images/                  → Fotos da placa e componentes
-└─ dumps/
-   ├─ bootlogs/              → Logs do sistema em execução
-   └─ partitions/            → Informações de partições do SD
+│  ├─ scope.md                 → O que está dentro e fora do escopo
+│  ├─ hardware.md              → Documentação detalhada da placa
+│  ├─ boot-chain.md            → Cadeia de boot (BROM → U-Boot → kernel)
+│  ├─ device-tree.md           → script.bin legado (não é DTB)
+│  ├─ kernel.md                → Kernel sunxi 3.4.x e por que não recompilar
+│  ├─ storage.md               → Layout de partições e backup do SD
+│  ├─ darkos-expectations.md   → Por que o port ainda não aconteceu
+│  └─ reference_autopsy.md     → Resumo da autópsia externa (terceiros)
+├─ reference/autopsy/          → Catálogo dos artefatos de referência
+└─ images/                     → Fotos da placa e componentes
 
  🧠 Referências importantes
 Este trabalho é baseado e validado por uma autópsia independente do mesmo console,
@@ -84,18 +105,21 @@ Não assumir compatibilidade com RK3326
 
 Essas ações quase sempre resultam em brick permanente.
 
-✅ Status atual
- Hardware identificado
+## ✅ Status atual
 
- Fake RK3326 confirmado
+| Item | Estado |
+|---|---|
+| Hardware identificado (GA36-MB V1.1 / Allwinner A33) | ✅ Confirmado |
+| Fake RK3326 confirmado | ✅ Confirmado |
+| Sistema funcional preservado (backup do SD) | ✅ Feito |
+| Cadeia de boot documentada em alto nível | ✅ Feito |
+| Dumps de diagnóstico versionados | ⬜ Pendente |
+| Bootimg extraído e analisado | ⬜ Pendente |
+| `script.bin` extraído e traduzido para FEX | ⬜ Pendente |
+| Acesso serial (pads TX/RX/GND) | ⬜ Pendente |
 
- Sistema funcional preservado
-
- Dumps completos versionados
-
- Bootimg analisado
-
- Script.bin documentado
+Detalhamento das pendências em [docs/scope.md](docs/scope.md) e
+[docs/darkos-expectations.md](docs/darkos-expectations.md).
 
 📌 Aviso final
 Este projeto não tem vínculo com fabricantes ou vendedores.
