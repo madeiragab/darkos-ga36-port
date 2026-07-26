@@ -1,3 +1,5 @@
+> 🇧🇷 **Português** · 🇬🇧 [English](sources.en.md)
+
 # Fontes e referências — Autópsia GA36 / R36S clone
 
 Este documento lista as fontes externas utilizadas como base técnica

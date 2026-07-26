@@ -1,3 +1,5 @@
+> 🇧🇷 **Português** · 🇬🇧 [English](hardware.en.md)
+
 # Hardware — GA36-MB (V1.1) — documentação local
 
 **Propósito:** reunir de forma concisa e verificável tudo o que sabemos sobre a placa do console que você abriu (GA36-MB V1.1).  

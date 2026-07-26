@@ -1,3 +1,5 @@
+> 🇧🇷 **Português** · 🇬🇧 [English](reference_autopsy.en.md)
+
 Reference: R36S console clone — Autópsia técnica (baseline)
 
 Fonte primária:

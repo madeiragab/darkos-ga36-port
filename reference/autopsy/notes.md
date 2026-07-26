@@ -1,3 +1,5 @@
+> 🇧🇷 **Português** · 🇬🇧 [English](notes.en.md)
+
 # Notas de validação — Autópsia vs hardware real (GA36)
 
 Este documento registra as observações feitas a partir da comparação entre

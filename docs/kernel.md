@@ -1,3 +1,5 @@
+> 🇧🇷 **Português** · 🇬🇧 [English](kernel.en.md)
+
 # Kernel
 
 ## Baseline funcional
