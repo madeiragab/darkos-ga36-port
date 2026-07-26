@@ -1,3 +1,5 @@
+> 🇧🇷 **Português** · 🇬🇧 [English](hardware.en.md)
+
 # Hardware — GA36-MB (R36S clone com Allwinner A33)
 
 Este documento descreve o hardware físico do console portátil clone do R36S

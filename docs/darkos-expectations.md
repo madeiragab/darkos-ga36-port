@@ -1,3 +1,5 @@
+> 🇧🇷 **Português** · 🇬🇧 [English](darkos-expectations.en.md)
+
 # DarkOS: expectativas vs. realidade
 
 O nome do repositório (`darkos-ga36-port`) reflete a **motivação inicial** do

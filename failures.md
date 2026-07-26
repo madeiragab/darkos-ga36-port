@@ -1,3 +1,5 @@
+> 🇧🇷 **Português** · 🇬🇧 [English](failures.en.md)
+
 # Registro de falhas e becos sem saída
 
 Este arquivo existe para que **ninguém repita o mesmo erro duas vezes** —
