@@ -1,3 +1,5 @@
+> 🇧🇷 **Português** · 🇬🇧 [English](device-tree.en.md)
+
 # Configuração de hardware: script.bin, não Device Tree
 
 Esta é a diferença que mais confunde quem chega a esta placa vindo de

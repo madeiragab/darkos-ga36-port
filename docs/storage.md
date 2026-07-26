@@ -1,3 +1,5 @@
+> 🇧🇷 **Português** · 🇬🇧 [English](storage.en.md)
+
 # Armazenamento e layout de partições
 
 O console **boota exclusivamente do microSD**. Não há eMMC nem NAND com

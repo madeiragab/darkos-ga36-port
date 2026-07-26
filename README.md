@@ -1,3 +1,5 @@
+> 🇧🇷 **Português** · 🇬🇧 [English](README.en.md)
+
 # GA36-MB (R36S clone) — Autópsia, preservação e documentação
 
 Este repositório documenta um console portátil amplamente vendido como “R36S / RK3326”, mas que **não utiliza o SoC anunciado**.  

@@ -1,3 +1,5 @@
+> 🇧🇷 **Português** · 🇬🇧 [English](README.en.md)
+
 # Autópsia técnica de referência — GA36 / R36S clone
 
 Este diretório contém a **autópsia técnica de referência** utilizada como baseline

@@ -1,3 +1,5 @@
+> 🇧🇷 **Português** · 🇬🇧 [English](scope.en.md)
+
 # Escopo do projeto
 
 Este documento define **o que este repositório é e o que ele não é**, para
