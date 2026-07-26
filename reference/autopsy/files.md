@@ -1,3 +1,5 @@
+> 🇧🇷 **Português** · 🇬🇧 [English](files.en.md)
+
 # Arquivos de referência da autópsia (GA36 / R36S clone)
 
 Este documento cataloga e descreve os arquivos disponibilizados no repositório de autópsia

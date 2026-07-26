@@ -1,3 +1,5 @@
+> 🇧🇷 **Português** · 🇬🇧 [English](boot-chain.en.md)
+
 # Cadeia de boot
 
 Entender esta cadeia é pré-requisito para qualquer modificação. Cada elo
