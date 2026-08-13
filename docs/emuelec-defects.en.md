@@ -234,7 +234,41 @@ instead of XMB (3D waves), the fixes are active.
 
 ---
 
-## 5. Other observations
+## 5. 205 NES ROMs re-copied on every boot
+
+`SYSTEM` embeds 205 files under `/usr/roms/nes/`, and
+`/usr/bin/mount_romfs.sh` ends like this:
+
+```sh
+#if [ -z "${ROMS_PART_TOKEN}" ]; then
+	rsync -a --ignore-existing  --progress /usr/roms/nes/ /storage/roms/nes/ &>/dev/null
+#else
+  #  echo "mmcblk0"
+#fi
+```
+
+The condition is **commented out** — the vendor left the `rsync`
+unconditional. As a result, deleting the games from the card achieves
+nothing: `--ignore-existing` re-copies whatever is missing on the next boot.
+
+Removing the source would require repacking the squashfs. The way out is to
+point EmulationStation at a different folder:
+
+```xml
+<path>/storage/roms/nes</path>  ->  <path>/storage/roms/nes-user</path>
+```
+
+The `rsync` keeps dumping into `nes/`, which nobody reads any more. Tool:
+[`../tools/unbundle_nes.py`](../tools/unbundle_nes.py).
+
+> Optional, to not even waste the ~7 MB: delete the `nes` folder from the
+> ROM partition and create an empty **file** named `nes` in its place.
+> `rsync` cannot create a directory over a file, fails silently, and nothing
+> is copied any more.
+
+---
+
+## 6. Other observations
 
 - `system.timezone=America/Mexico_City` — vendor default.
 - `system.hostname=UDT` — vendor branding in the build
