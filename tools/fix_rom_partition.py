@@ -193,9 +193,12 @@ def main():
     cur_start, cur_cnt = struct.unpack("<II", e[8:16])
     print(f"\np1 atual: tipo=0x{e[4]:02x} inicio={cur_start} setores={cur_cnt} "
           f"({cur_cnt*SECTOR/1024**2:.2f} MB)")
-    if cur_start != EXPECT_START:
+    zeroed = e == b"\x00" * 16
+    if zeroed:
+        print("  entrada 1 esta zerada — retomando execucao interrompida")
+    elif cur_start != EXPECT_START:
         raise SystemExit(f"inicio inesperado ({cur_start}). Abortado.")
-    if cur_cnt > 100000:
+    elif cur_cnt > 100000:
         raise SystemExit(f"p1 ja parece corrigida ({cur_cnt} setores). Abortado.")
 
     new_entry = bytearray(16)
@@ -223,11 +226,35 @@ def main():
         if hdisk != INVALID:
             devio(hdisk, FSCTL_ALLOW_EXTENDED_DASD_IO)
 
+        # O Windows bloqueia escrita em setores que pertencem a uma particao
+        # que ele conhece, mesmo sem letra atribuida — e sem letra nao da para
+        # travar/desmontar o volume. Por isso a gravacao e em tres fases:
+        # apaga a entrada da MBR, faz o Windows esquecer a particao, grava o
+        # filesystem, e so entao escreve a entrada definitiva.
+        import time
         with open(path, "r+b", buffering=0) as f:
+            if not zeroed:
+                blank = bytearray(mbr)
+                blank[446:462] = b"\x00" * 16
+                f.seek(0)
+                f.write(bytes(blank))
+                f.flush()
+                os.fsync(f.fileno())
+                if hdisk != INVALID:
+                    devio(hdisk, IOCTL_DISK_UPDATE_PROPERTIES)
+                time.sleep(2)
+                print("  fase 1: entrada 1 da MBR apagada, particao liberada")
+
             write_fat32(f, base, new_size, fat_sz, data_start, clusters, vol_id)
+            f.flush()
+            os.fsync(f.fileno())
+            print("  fase 2: FAT32 gravado")
+
             f.seek(0)
             f.write(bytes(new_mbr))
-        print("MBR e FAT32 gravados.")
+            f.flush()
+            os.fsync(f.fileno())
+            print("  fase 3: entrada 1 da MBR reescrita")
 
         if hdisk != INVALID:
             devio(hdisk, IOCTL_DISK_UPDATE_PROPERTIES)
