@@ -21,9 +21,15 @@ import sys
 FTYPE = {1: "-", 2: "d", 3: "c", 4: "b", 5: "p", 6: "s", 7: "l"}
 
 
+ALIGN = 512          # dispositivos brutos exigem I/O alinhado ao setor
+
+
 class Ext4:
     def __init__(self, path, part_off):
-        self.f = open(path, "rb")
+        # dispositivo bruto (\\.\PhysicalDriveN, /dev/sdX) precisa de I/O
+        # sem buffer e alinhado; arquivo comum aceita qualquer coisa
+        self.raw = path.startswith("\\\\.\\") or path.startswith("/dev/")
+        self.f = open(path, "rb", buffering=0 if self.raw else -1)
         self.po = part_off
         sb = self.pread(part_off + 1024, 1024)
         magic, = struct.unpack("<H", sb[0x38:0x3A])
@@ -45,8 +51,16 @@ class Ext4:
         self.gdt_block = self.first_data_block + 1
 
     def pread(self, off, n):
-        self.f.seek(off)
-        return self.f.read(n)
+        if not self.raw:
+            self.f.seek(off)
+            return self.f.read(n)
+        # arredonda o inicio para baixo e o fim para cima, depois fatia
+        start = off - (off % ALIGN)
+        end = ((off + n + ALIGN - 1) // ALIGN) * ALIGN
+        self.f.seek(start)
+        buf = self.f.read(end - start)
+        rel = off - start
+        return buf[rel:rel + n]
 
     def block(self, n, count=1):
         return self.pread(self.po + n * self.bs, self.bs * count)
