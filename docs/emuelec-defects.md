@@ -72,22 +72,36 @@ O sistema **recebe** o evento `KEY_POWER` e o descarta. Nada trata o botão.
 A única coisa que acontece é o corte por hardware da PMIC (AXP22x) quando
 você segura — e esse corte não avisa ninguém, então nada é gravado.
 
-**Corrigível sem tocar no squashfs.** `/etc/systemd/logind.conf.d` é um
-symlink para `/storage/.config/logind.conf.d`, que fica no ext4 gravável. Um
-drop-in ali sobrescreve o padrão:
+**Mas `HandlePowerKey` não é o caminho, e a conclusão acima está incompleta.**
+O botão **não** chega ao logind. Existe um serviço próprio do vendor,
+`udt_pwr.service`, rodando `/usr/bin/udt_pwr_events.sh`, que faz *polling*
+de um arquivo sysfs de um driver próprio:
 
-```ini
-[Login]
-HandlePowerKey=poweroff
+```sh
+POWER_KEY_FILE="/sys/devices/platform/micro_gamepad/power_key"
+while true; do
+    key_value=$(cat "$POWER_KEY_FILE")
+    if [ "$key_value" == "1" ]; then
+        ...
+        sync
+        systemctl suspend
 ```
 
-Com isso, um **toque curto** desliga limpo: o systemd para os serviços, o
-RetroArch recebe `SIGTERM` e grava a SRAM, e as partições são desmontadas.
-Ferramenta: [`../tools/enable_powerkey.py`](../tools/enable_powerkey.py).
+Ou seja, **um toque curto suspende — e chama `sync` antes**. O dado vai para
+o cartão. Um segundo toque retoma, restaura backlight e áudio.
 
-**Segurar o botão continua cortando na PMIC** — isso é hardware, não tem
-correção por software. Depois da correção, o uso certo é *tocar*, não
-segurar.
+O `HandlePowerKey=ignore` do logind existe justamente para o logind não
+disputar o botão com esse serviço.
+
+**Conclusão correta:** o toque curto sempre foi seguro. O que perde save é
+**segurar**, porque aí a PMIC (AXP22x) corta na marra, antes de qualquer
+`sync` — e isso é hardware, sem correção por software.
+
+> A ferramenta [`../tools/enable_powerkey.py`](../tools/enable_powerkey.py)
+> foi escrita antes desta descoberta. **Não use.** Se o kernel também emitir
+> `KEY_POWER` no `event0` (o próprio script traz uma versão comentada que
+> usava `evtest`), ela faz o logind disparar `poweroff` competindo com o
+> `suspend` do vendor. Reverta com `--revert --apply`.
 
 ### 1.5 Sem tuning de writeback
 
