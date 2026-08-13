@@ -1,0 +1,3 @@
+retroarch.cfg.bak
+*.pyc
+__pycache__/
