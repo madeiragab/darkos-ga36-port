@@ -61,15 +61,33 @@ Behaviour observed on the unit: holding the power button **loses** the save.
 Exiting the emulator with `Start` + `Select` (returning to EmulationStation)
 **writes** it.
 
-This is the exact signature of problem 1.1: SRAM is only written when the
-core unloads. `Start`+`Select` unloads the core; the power button does not —
-it cuts at the PMIC (AXP22x) before any flush.
+**Cause found by reading `SYSTEM`.** `/etc/systemd/logind.conf` carries:
 
-Until the button handler is fixed, **the safe shutdown is `Start`+`Select`
-first, button afterwards**.
+```ini
+[Login]
+HandlePowerKey=ignore
+```
 
-The handler lives inside `SYSTEM` (lzo squashfs) and has not been inspected
-yet.
+The system **receives** the `KEY_POWER` event and discards it. Nothing
+handles the button. The only thing that happens is the PMIC (AXP22x)
+hardware cut when you hold it — and that cut tells nobody, so nothing is
+written.
+
+**Fixable without touching the squashfs.** `/etc/systemd/logind.conf.d` is a
+symlink to `/storage/.config/logind.conf.d`, which lives on the writable
+ext4. A drop-in there overrides the default:
+
+```ini
+[Login]
+HandlePowerKey=poweroff
+```
+
+With that, a **short press** shuts down cleanly: systemd stops the services,
+RetroArch gets `SIGTERM` and writes SRAM, and partitions are unmounted.
+Tool: [`../tools/enable_powerkey.py`](../tools/enable_powerkey.py).
+
+**Holding the button still cuts at the PMIC** — that is hardware, with no
+software fix. After this change, the correct use is a *tap*, not a hold.
 
 ### 1.5 No writeback tuning
 
