@@ -16,16 +16,33 @@ evitar expectativas que levam a brick.
 4. **Evitar brick** em outras unidades, registrando o que não fazer e o que
    já falhou.
 
+5. **Ferramentar** a análise: os scripts em [`../tools/`](../tools/) existem
+   para que qualquer pessoa reproduza os achados na própria unidade, sem
+   Linux e sem montar nada.
+
 ## O que está fora do escopo (por enquanto)
 
 - **Portar DarkOS, EmuELEC moderno ou qualquer distribuição nova.** Só será
-  considerado depois que a cadeia de boot estiver completamente entendida —
-  ver [darkos-expectations.md](darkos-expectations.md).
+  considerado depois que o console serial estiver funcionando — ver
+  [darkos-expectations.md](darkos-expectations.md).
 - **Recompilar o kernel.** O kernel legado sunxi 3.4.x é o único baseline
-  funcional comprovado.
+  funcional comprovado. Isto é uma decisão de sequência, **não** uma
+  afirmação de impossibilidade: o A33 tem suporte mainline, e o caminho
+  está descrito em [kernel.md](kernel.md).
 - **Redistribuir binários de terceiros.** Os artefatos da autópsia de
   referência são catalogados e descritos, nunca versionados aqui — ver
   [../reference/autopsy/files.md](../reference/autopsy/files.md).
+
+## O que passou a estar no escopo
+
+Corrigir defeitos do sistema de fábrica **entrou** no escopo, porque são
+verificáveis na imagem e a correção é reversível:
+
+- perda de save ao desligar;
+- partição de ROMs inutilizável na imagem de recovery;
+- renderização em 1080p num painel de 640×480.
+
+Ver [emuelec-defects.md](emuelec-defects.md).
 
 ## Princípio de trabalho
 
@@ -43,8 +60,17 @@ de uma destas fontes:
 | Fonte | Exemplo |
 |---|---|
 | Silk lido diretamente na PCB | revisão `GA36-MB V1.1-20251025` |
+| **Leitura da imagem com offset citável** | `sun8iw5p1` em `0x01a307e7f` |
 | Saída de comando na unidade | `/proc/cpuinfo`, `uname -a`, `dmesg` |
 | Log do sistema em execução | detecção da GPU Mali-400 |
 | Autópsia independente de terceiros | layout de partições, artefatos de boot |
 
+A segunda linha é a mais forte das cinco e passou a ser a preferida: qualquer
+pessoa com a mesma imagem pode reexecutar a ferramenta e obter o mesmo byte
+no mesmo offset. Não depende de o console estar ligando, nem de interpretação.
+
 Tudo o mais é marcado explicitamente como **pendente** ou **não confirmado**.
+
+> Distinção que este repositório mantém: **medido** ≠ **inferido**. O
+> tamanho de 1 GB de RAM, por exemplo, vem de decodificar `dram_para1`, e
+> está marcado como inferência até ser confirmado com `free -h` na unidade.

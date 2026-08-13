@@ -66,8 +66,89 @@ U-Boot espera `boot.img` no formato Android.
 
 ## Falhas registradas nesta unidade
 
-_Nenhuma até o momento — nenhuma modificação destrutiva foi tentada._
+### 2026-08-12 — Windows esvaziou as partições do cartão
 
-O estado atual é: boot funcional, backup do SD realizado, hardware
-identificado. Toda tentativa futura deve ser registrada acima **antes** de
-ser repetida.
+**Hipótese:** plugar o cartão no PC para inspecionar seria inofensivo.
+**Ação:** cartão inserido no Windows 11, volumes montados automaticamente.
+**Resultado:** as partições `Volumn` e de ROMs apareceram vazias; o conteúdo
+de fábrica (fontes, `bootlogo.bmp`, `magic.bin`) sumiu. A partição de ROMs
+apareceu reformatada como exFAT.
+**Diagnóstico:** o Windows monta a `Volumn` usando o **BPB**, que declara
+128 MB, enquanto a entrada da MBR declara 32 MB. Ele considera gravável a
+faixa de 36 MB a 164 MB do cartão, onde estão o `boot.img` (84 MB) e o
+`SYSTEM` (116 MB). Além disso cria `System Volume Information` sozinho ao
+montar. Ver [docs/image-autopsy.md](docs/image-autopsy.md) §6.3.
+**Recuperação:** regravação da imagem de recovery.
+**Lição:** **nunca deixe o Windows montar esse cartão sem necessidade.** Se
+precisar, desligue o automount antes (`diskpart` → `automount disable`) e
+nunca clique em "Formatar" quando ele oferecer.
+
+### 2026-08-12 — Imagem de recovery gera partição de ROMs de 5,42 MB
+
+**Hipótese:** gravar a imagem de recovery restauraria o console ao estado
+de fábrica.
+**Ação:** gravação byte a byte da `r36s-a33-recovery.img` (2425 MB).
+**Resultado:** o console bootou, mas o EmulationStation exibiu
+`we can't find any systems`. A partição 1 ficou com 11 099 setores
+(5,42 MB).
+**Diagnóstico:** a imagem distribuída está truncada — a entrada da MBR
+declara 5,42 MB enquanto o BPB FAT32 interno declara 48 779 MB. A MBR também
+aponta LBA 4956161 quando o boot sector real está em 4956160.
+**Recuperação:** reescrita da entrada da MBR (início 4956160, tamanho até o
+fim do cartão) e geração de um FAT32 novo com label `EEROMS`.
+**Lição:** a imagem de recovery **não** é utilizável como está. Ver
+[docs/storage.md](docs/storage.md).
+
+### 2026-08-12 — Console não ligava; parecia brick, era bateria
+
+**Hipótese:** depois de um boot bem-sucedido, o console parou de ligar —
+suspeita imediata de corrupção do boot.
+**Ação:** comparação byte a byte entre cartão e imagem
+([`tools/verify_card.py`](tools/verify_card.py)).
+**Resultado:** apenas 32,6 KB de diferença, todos em áreas inofensivas
+(tabela FAT da `Volumn` e partição de ROMs). `boot0`, `boot.img`, `SYSTEM` e
+o ext4 estavam íntegros.
+**Diagnóstico:** bateria muito descarregada. O LED de carga acende bem antes
+de haver carga suficiente para dar boot.
+**Recuperação:** 2 horas no carregador sem tentar ligar.
+**Lição:** com `loglevel=0` e `bootdelay=0`, falha de boot e falta de energia
+produzem exatamente a mesma tela preta. Verifique o cartão por leitura antes
+de assumir corrupção, e carregue de verdade antes de assumir brick.
+
+### 2026-08-13 — `custom_start.sh` não é executado por este fork
+
+**Hipótese:** o hook `/storage/.config/custom_start.sh`, documentado pelo
+próprio EmuELEC como o lugar para scripts de boot, seria executado antes do
+frontend.
+**Ação:** patch do `custom_start.sh` com `sed` para ajustar
+`autosave_interval`, `menu_driver` e mais 7 chaves do `retroarch.cfg`.
+**Resultado:** nenhuma das chaves mudou. Confirmado lendo o
+`retroarch.cfg` vivo do cartão.
+**Diagnóstico:** este fork do vendor não chama o hook. O `autostart.sh`
+ainda traz o comentário do upstream mandando usar o `custom_start.sh`, mas
+a chamada não acontece. O handler fica no `SYSTEM` (squashfs **lzo**), que
+ainda não foi aberto.
+**Recuperação:** não foi necessária — o hook simplesmente não roda, nada
+quebrou.
+**Lição:** neste sistema, alterar configuração exige escrever direto no
+arquivo, não depender de hooks. Ver
+[`tools/patch_retroarch.py`](tools/patch_retroarch.py).
+
+### 2026-08-13 — `Set-Disk -IsOffline` falha em mídia removível
+
+**Hipótese:** colocar o disco offline liberaria escrita crua no Windows.
+**Ação:** `Set-Disk -Number N -IsOffline $true` antes de reescrever a MBR.
+**Resultado:** `Set-Disk : Not Supported — Removable media cannot be set to
+offline.`
+**Diagnóstico:** o Windows recusa por design em mídia removível.
+**Recuperação:** abrir cada volume com `CreateFileW`, aplicar
+`FSCTL_LOCK_VOLUME` e `FSCTL_DISMOUNT_VOLUME`, e **manter os handles
+abertos** durante a escrita — é o que as ferramentas de imagem fazem.
+**Lição:** para escrita crua em cartão no Windows, lock + dismount por
+volume, não offline por disco.
+
+---
+
+O estado atual é: boot funcional, backup do SD verificado, hardware
+identificado, partição de ROMs corrigida. Toda tentativa futura deve ser
+registrada acima **antes** de ser repetida.
