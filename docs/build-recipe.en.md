@@ -71,6 +71,10 @@ python tools/ext4_reader.py \\.\PhysicalDrive1 0x37400000 cat:/.config/emulation
 Create the folders at the root of the ROM partition and **put at least one
 ROM in** — an empty folder will not show up.
 
+> **The NES folder is called `nes-user`, not `nes`.** `mount_romfs.sh` dumps
+> 205 vendor ROMs into `nes/` on every boot, which is why EmulationStation
+> was repointed. See [emuelec-defects.en.md](emuelec-defects.en.md) §5.
+
 ## Step 4 — Configuration
 
 ```bash
@@ -120,10 +124,13 @@ On Windows any raw-read tool will do; keep the hash alongside it.
 
 ## What this recipe does not fix
 
-- **The power button cuts at the PMIC** without telling the system. The
-  handler is inside `SYSTEM` (read-only squashfs). Mitigated, not fixed: you
-  lose at most ~12 s instead of the whole session. Clean shutdown is still
-  `Start`+`Select` before the button.
+- **Power button: leave it alone.** A tap suspends, and the vendor service
+  (`udt_pwr.service`) already runs `sync` first — the save is protected. Two
+  attempts to convert it to `poweroff` broke boot; both are documented in
+  [../failures.en.md](../failures.en.md). The script touches backlight and
+  audio **before** calling `systemctl`, so intercepting only the last step
+  leaves the device in a state neither branch of the script undoes. Holding
+  the button still cuts at the PMIC — that is hardware.
 - **Missing `fsck.auto`** in the initramfs — requires repacking `boot.img`.
 - **PSP, Stardew Valley, and anything needing ARM64 or GLES 3.** Hardware
   wall. See [kernel.en.md](kernel.en.md), "Limits no kernel can fix".

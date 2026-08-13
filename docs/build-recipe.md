@@ -70,6 +70,11 @@ python tools/ext4_reader.py \\.\PhysicalDrive1 0x37400000 cat:/.config/emulation
 Crie as pastas na raiz da partição de ROMs e **ponha pelo menos uma ROM** —
 pasta vazia não aparece.
 
+> **A pasta de NES chama-se `nes-user`, não `nes`.** O `mount_romfs.sh`
+> despeja 205 ROMs do fabricante em `nes/` a cada boot, e por isso o
+> EmulationStation foi repontado. Ver
+> [emuelec-defects.md](emuelec-defects.md) §5.
+
 ## Passo 4 — Configuração
 
 ```bash
@@ -119,10 +124,13 @@ No Windows, qualquer ferramenta de leitura crua serve; guarde o hash junto.
 
 ## O que esta receita não resolve
 
-- **Botão de power corta na PMIC** sem avisar o sistema. O handler está no
-  `SYSTEM` (squashfs somente leitura). Mitigado, não corrigido: você perde
-  no máximo ~12 s em vez da sessão inteira. Desligamento limpo continua
-  sendo `Start`+`Select` antes do botão.
+- **Botão de power: não mexa.** O toque suspende, e o serviço do vendor
+  (`udt_pwr.service`) já executa `sync` antes — o save está protegido. Duas
+  tentativas de converter para `poweroff` quebraram o boot; ambas estão
+  documentadas em [../failures.md](../failures.md). O script mexe em
+  backlight e áudio **antes** de chamar o `systemctl`, então interceptar só
+  o final deixa o aparelho num estado que nenhum ramo do script desfaz.
+  Segurar o botão continua cortando na PMIC — isso é hardware.
 - **`fsck.auto` ausente** no initramfs — exige repack do `boot.img`.
 - **PSP, Stardew Valley e qualquer coisa que exija ARM64 ou GLES 3.**
   Parede de hardware. Ver [kernel.md](kernel.md), "Limites que kernel nenhum
