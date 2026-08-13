@@ -72,10 +72,13 @@ class Ext4:
         hi = struct.unpack("<I", d[40:44])[0] if self.desc_size >= 64 else 0
         return (hi << 32) | lo
 
-    def inode(self, ino):
+    def inode_offset(self, ino):
+        """Offset absoluto do inode na imagem/dispositivo."""
         g, i = divmod(ino - 1, self.inodes_per_group)
-        off = self.po + self.inode_table(g) * self.bs + i * self.inode_size
-        return self.pread(off, self.inode_size)
+        return self.po + self.inode_table(g) * self.bs + i * self.inode_size
+
+    def inode(self, ino):
+        return self.pread(self.inode_offset(ino), self.inode_size)
 
     def extents(self, iblock_bytes):
         """Retorna [(bloco_logico, bloco_fisico, tamanho)]."""

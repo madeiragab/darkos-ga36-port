@@ -78,8 +78,19 @@ antes de tocar o cartão.
 
 ### Correção
 
-Aplicada via `/storage/.config/custom_start.sh`, que o EmuELEC executa antes
-do frontend:
+> **Primeira tentativa falhou.** O hook `/storage/.config/custom_start.sh`,
+> documentado pelo próprio EmuELEC, **não é executado por este fork** —
+> registrado em [../failures.md](../failures.md). A correção real usa dois
+> pontos que comprovadamente rodam:
+>
+> 1. **`/flash/post-flash.sh`** — o `init` faz `source` dele na linha 666,
+>    logo após montar `/flash`. Ajusta o writeback do kernel; valores em
+>    `/proc/sys` sobrevivem ao `switch_root`. Ver
+>    [../boot-hooks/](../boot-hooks/).
+> 2. **Escrita direta no `retroarch.cfg`**, sem depender de hook nenhum. Ver
+>    [`../tools/patch_retroarch.py`](../tools/patch_retroarch.py).
+
+Valores aplicados:
 
 | Ajuste | De | Para |
 |---|---|---|
