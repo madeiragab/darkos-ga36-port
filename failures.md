@@ -141,6 +141,25 @@ quebrou.
 arquivo, não depender de hooks. Ver
 [`tools/patch_retroarch.py`](tools/patch_retroarch.py).
 
+### 2026-08-13 — Console desligava sozinho durante o boot
+
+**Hipótese:** trocar `systemctl suspend` por `poweroff`, via função no
+`profile.d`, faria o toque no botão desligar o console.
+**Ação:** `tools/powerkey_poweroff.py --apply`.
+**Resultado:** o console ligava, passava do splash e **desligava sozinho**
+exatamente quando o EmulationStation ia aparecer.
+**Diagnóstico:** `udt_pwr.service` sobe com `Before=emuelec.target`, antes
+do frontend. A primeira leitura de `/sys/devices/platform/micro_gamepad/power_key`
+ainda vale `1` — resquício do toque que **ligou** o aparelho. O script então
+dispara a ação. Antes da mudança isso virava um `suspend` no meio do boot,
+que falhava ou retomava na hora, sem sintoma visível. Depois da mudança
+virou um `poweroff` real.
+**Recuperação:** `tools/powerkey_poweroff.py --revert --apply`.
+**Lição:** o botão pode disparar durante o próprio boot. Qualquer ação
+destrutiva ligada a ele precisa de trava de tempo. A versão corrigida só
+converte para `poweroff` depois de **90 s de uptime**; antes disso mantém o
+comportamento de fábrica.
+
 ### 2026-08-13 — `Set-Disk -IsOffline` falha em mídia removível
 
 **Hipótese:** colocar o disco offline liberaria escrita crua no Windows.

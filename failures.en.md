@@ -129,6 +129,25 @@ repacking the squashfs, which is why the solution uses
 directly, not relying on hooks. See
 [`tools/patch_retroarch.py`](tools/patch_retroarch.py).
 
+### 2026-08-13 — Console powered itself off during boot
+
+**Hypothesis:** swapping `systemctl suspend` for `poweroff`, via a function
+in `profile.d`, would make a button tap shut the console down.
+**Action:** `tools/powerkey_poweroff.py --apply`.
+**Result:** the console powered on, passed the splash and **shut itself
+down** exactly when EmulationStation was about to appear.
+**Diagnosis:** `udt_pwr.service` starts with `Before=emuelec.target`, ahead
+of the frontend. The first read of
+`/sys/devices/platform/micro_gamepad/power_key` still returns `1` — a
+leftover from the tap that **powered the device on**. The script then fires
+its action. Before the change that became a mid-boot `suspend`, which failed
+or resumed immediately with no visible symptom. After the change it became a
+real `poweroff`.
+**Recovery:** `tools/powerkey_poweroff.py --revert --apply`.
+**Lesson:** the button can fire during boot itself. Any destructive action
+bound to it needs a time guard. The fixed version only converts to
+`poweroff` after **90 s of uptime**; before that it keeps stock behaviour.
+
 ### 2026-08-13 — `Set-Disk -IsOffline` fails on removable media
 
 **Hypothesis:** taking the disk offline would free up raw writes on Windows.
