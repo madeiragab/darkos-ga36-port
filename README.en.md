@@ -50,6 +50,7 @@ evidence read directly from the image — see
 
 | Document | Subject |
 |---|---|
+| **[docs/build-recipe.en.md](docs/build-recipe.en.md)** | **Reproducible recipe: from recovery image to a working build** |
 | [docs/scope.en.md](docs/scope.en.md) | What is in and out of scope, and the criterion for "confirmed" |
 | [docs/hardware.en.md](docs/hardware.en.md) | Components, technical evidence and board photos |
 | **[docs/image-autopsy.en.md](docs/image-autopsy.en.md)** | **Image autopsy: offsets, structures and defects, with method** |

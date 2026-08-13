@@ -50,6 +50,7 @@ diretamente da imagem — ver
 
 | Documento | Assunto |
 |---|---|
+| **[docs/build-recipe.md](docs/build-recipe.md)** | **Receita reproduzível: da imagem de recovery à build funcional** |
 | [docs/scope.md](docs/scope.md) | O que está dentro e fora do escopo, e o critério de "confirmado" |
 | [docs/hardware.md](docs/hardware.md) | Componentes, provas técnicas e fotos da placa |
 | **[docs/image-autopsy.md](docs/image-autopsy.md)** | **Autópsia da imagem: offsets, estruturas e defeitos, com método** |
