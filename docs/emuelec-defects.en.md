@@ -73,21 +73,36 @@ handles the button. The only thing that happens is the PMIC (AXP22x)
 hardware cut when you hold it — and that cut tells nobody, so nothing is
 written.
 
-**Fixable without touching the squashfs.** `/etc/systemd/logind.conf.d` is a
-symlink to `/storage/.config/logind.conf.d`, which lives on the writable
-ext4. A drop-in there overrides the default:
+**But `HandlePowerKey` is not the path, and the conclusion above is
+incomplete.** The button never reaches logind. There is a vendor service,
+`udt_pwr.service`, running `/usr/bin/udt_pwr_events.sh`, which *polls* a
+sysfs file exposed by a custom driver:
 
-```ini
-[Login]
-HandlePowerKey=poweroff
+```sh
+POWER_KEY_FILE="/sys/devices/platform/micro_gamepad/power_key"
+while true; do
+    key_value=$(cat "$POWER_KEY_FILE")
+    if [ "$key_value" == "1" ]; then
+        ...
+        sync
+        systemctl suspend
 ```
 
-With that, a **short press** shuts down cleanly: systemd stops the services,
-RetroArch gets `SIGTERM` and writes SRAM, and partitions are unmounted.
-Tool: [`../tools/enable_powerkey.py`](../tools/enable_powerkey.py).
+So a **short press suspends — and calls `sync` first**. Data reaches the
+card. A second press resumes, restoring backlight and audio.
 
-**Holding the button still cuts at the PMIC** — that is hardware, with no
-software fix. After this change, the correct use is a *tap*, not a hold.
+logind's `HandlePowerKey=ignore` exists precisely so logind does not fight
+that service for the button.
+
+**Correct conclusion:** a short press was always safe. What loses saves is
+**holding**, because then the PMIC (AXP22x) cuts by force, before any
+`sync` — and that is hardware, with no software fix.
+
+> The tool [`../tools/enable_powerkey.py`](../tools/enable_powerkey.py) was
+> written before this discovery. **Do not use it.** If the kernel also emits
+> `KEY_POWER` on `event0` (the script itself carries a commented-out version
+> that used `evtest`), it makes logind fire `poweroff` racing the vendor's
+> `suspend`. Revert with `--revert --apply`.
 
 ### 1.5 No writeback tuning
 
