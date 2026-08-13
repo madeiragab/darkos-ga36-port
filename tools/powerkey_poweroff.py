@@ -59,16 +59,24 @@ BLOCK = f"""
 # carregou este arquivo via /etc/profile. No toque do botao ele executa
 # backlight off, mute, sync e entao `systemctl suspend`.
 #
-# A funcao abaixo intercepta somente o verbo `suspend`. O `sync` do script
+# A funcao abaixo intercepta o verbo `suspend` apenas depois de 90 s de
+# uptime, para nao agir durante o boot. O `sync` do script
 # original ja rodou antes, e o `poweroff` do systemd ainda para os servicos
 # de forma limpa: o RetroArch recebe SIGTERM e grava a SRAM, e as particoes
 # sao desmontadas.
 systemctl() {{
   if [ "$1" = "suspend" ]; then
-    command systemctl poweroff
-  else
-    command systemctl "$@"
+    # Trava de boot. O udt_pwr.service sobe com Before=emuelec.target e a
+    # primeira leitura de power_key ainda vale "1", resquicio do toque que
+    # LIGOU o aparelho. Sem esta guarda, o console se desliga sozinho no
+    # meio do boot, logo antes do EmulationStation aparecer.
+    __ga36_up=$(cut -d. -f1 /proc/uptime 2>/dev/null)
+    if [ "${{__ga36_up:-0}}" -ge 90 ]; then
+      command systemctl poweroff
+      return $?
+    fi
   fi
+  command systemctl "$@"
 }}
 {END}
 """
