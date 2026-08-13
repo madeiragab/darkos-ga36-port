@@ -14,7 +14,14 @@ Rode num PowerShell ABERTO COMO ADMINISTRADOR:
     python fix_rom_partition.py --apply
 Sem --apply, so simula.
 """
-import struct, subprocess, sys, json, random, ctypes
+import ctypes
+import json
+import os
+import random
+import struct
+import subprocess
+import sys
+import time
 from ctypes import wintypes
 
 SECTOR       = 512
@@ -231,7 +238,6 @@ def main():
         # travar/desmontar o volume. Por isso a gravacao e em tres fases:
         # apaga a entrada da MBR, faz o Windows esquecer a particao, grava o
         # filesystem, e so entao escreve a entrada definitiva.
-        import time
         with open(path, "r+b", buffering=0) as f:
             if not zeroed:
                 blank = bytearray(mbr)
