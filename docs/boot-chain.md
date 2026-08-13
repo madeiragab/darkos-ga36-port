@@ -9,25 +9,37 @@ partições.
 
 ## Visão geral
 
+Offsets confirmados por leitura direta da imagem — método em
+[image-autopsy.md](image-autopsy.md).
+
 ```text
 BROM (ROM interna do SoC, imutável)
-   │  procura bootloader em offset fixo do microSD
+   │  procura o bootloader no setor 16 do microSD
    ▼
-U-Boot (partição raw, ~16 MB)
-   │  específico da placa; entende o layout antigo do SD
-   │  lê a configuração de hardware
+boot0 "eGON.BT0"                          @0x00002000  (setor 16, 32 KB)
+   │  inicializa a DRAM com os parâmetros do próprio header
    ▼
-script.bin / magic.bin (Allwinner legacy)
-   │  inicializa DRAM, GPIO, clocks, display
+U-Boot 2017.09                            @0x01320000  (~20 MB)
+   │  build do vendor: -g05bceb2-dirty #lxl (Jul 14 2025)
    ▼
-bootimg (formato Android, ~32 MB)
-   │  contém kernel + ramdisk
+script.bin (Allwinner legacy)             @0x01366000  (19,40 MB)
+   │  GPIO, clocks, display, UART, PMIC — 78 seções
    ▼
-Kernel Linux sunxi 3.4.x
-   │  monta as partições do sistema
+environment do U-Boot                     @0x04400000  (68 MB)
+   │  monta os bootargs; define root= e disk=
+   ▼
+boot.img (formato Android)                @0x05400000  (84 MB)
+   │  kernel 12,60 MB @0x40008000 + initramfs 2,90 MB gzip
+   ▼
+Kernel Linux sunxi 3.4.39
+   │  monta /flash (mmcblk0p7) e /storage (mmcblk0p8)
    ▼
 EmuELEC 4.7 (build GA36-UDT-EE-TF-R-20250818)
 ```
+
+> Correção em relação a versões anteriores deste documento: o `script.bin`
+> **não** fica na partição FAT16 `Volumn`. Ele está na área raw, junto ao
+> U-Boot. A FAT16 contém apenas fontes, `bootlogo.bmp` e `magic.bin`.
 
 ## Por que cada elo importa
 
@@ -64,14 +76,43 @@ Linux sunxi legado (3.4.x). Ver [kernel.md](kernel.md).
 | Trocar só o kernel, mantendo o script.bin | Falha silenciosa se o kernel não entender o formato legado |
 | Perder o SD original sem backup | Console inutilizável |
 
+## Environment do U-Boot
+
+Extraído de `0x04400000`. É ele que constrói a linha de comando do kernel —
+o header do `boot.img` tem `cmdline` **vazia**.
+
+```
+bootdelay=0
+bootcmd=run setargs_mmc boot_normal
+console=ttyS2,115200
+mmc_root=/dev/mmcblk0p7
+disk=/dev/mmcblk0p8
+init=/init
+loglevel=0
+boot_normal=sunxi_flash read 40007800 boot;boota 40007800
+```
+
+Duas consequências importantes:
+
+1. **`boot_normal` usa `sunxi_flash`**, ou seja, a tabela de partições
+   proprietária da Allwinner — não a MBR. A MBR existe em paralelo, para o
+   kernel. Por isso reparticionar com ferramenta comum quebra o boot mesmo
+   quando os arquivos continuam lá.
+2. **`loglevel=0` e `bootdelay=0`**: o boot é silencioso por projeto.
+   Qualquer falha aparece como tela preta muda, indistinguível de aparelho
+   sem energia.
+
 ## Estado da documentação
 
 | Elo | Estado |
 |---|---|
-| Existência e ordem da cadeia | Confirmado pela autópsia de referência |
-| Offsets exatos de cada estágio | **Pendente** — requer dump e análise do primeiro KB do SD |
-| Conteúdo do environment do U-Boot | **Pendente** |
-| Log completo de boot via serial | **Pendente** — requer identificar os pads TX/RX/GND |
+| Existência e ordem da cadeia | Confirmado |
+| Offsets exatos de cada estágio | ✅ **Confirmado** — ver diagrama acima |
+| Conteúdo do environment do U-Boot | ✅ **Confirmado** |
+| Pinos do console serial | ✅ **PB0/PB1 @115200** — ver [serial-console.md](serial-console.md) |
+| Log completo de boot via serial | **Pendente** — requer ligar o adaptador |
+| Acesso ao prompt do U-Boot | **Pendente** — `bootdelay=0` sugere que não há janela |
 
 Fonte primária dos artefatos:
-[../reference/autopsy/files.md](../reference/autopsy/files.md).
+[../reference/autopsy/files.md](../reference/autopsy/files.md) e
+[image-autopsy.md](image-autopsy.md).
