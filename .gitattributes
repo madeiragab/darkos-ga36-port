@@ -1,0 +1,5 @@
+# Hooks de boot são sourced pelo shell do initramfs.
+# Um \r no fim da linha torna o caminho inválido e pode abortar o boot.
+# Force LF sempre, independente do autocrlf de quem clonar.
+*.sh    text eol=lf
+*.py    text eol=lf
