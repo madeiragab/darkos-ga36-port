@@ -24,7 +24,7 @@ in the image and the fixes are reversible:
 
 - save loss on power-off;
 - unusable ROM partition in the recovery image;
-- rendering at 1080p on a 640×480 panel.
+- wrong RGUI aspect ratio and frontend render cost.
 
 See [emuelec-defects.en.md](emuelec-defects.en.md).
 

@@ -153,20 +153,24 @@ it did.
 
 ---
 
-## 4. Performance: rendering at 1080p on a 640×480 panel
+## 4. Frontend performance
 
-`/storage/.config/emuelec/configs/emuelec.conf`:
+> **Correction.** An earlier version of this document claimed the system
+> rendered at 1920×1080 and scaled down to 640×480, because of
+> `ee_videomode=1080p60hz` in `emuelec.conf`. **That is wrong.**
+>
+> `script.bin`'s `disp_init` has `fb0_width = 0`, `fb0_height = 0` and
+> `fb0_scaler_mode_enable = 0`. Zero means "use the panel size", so the
+> framebuffer **is already 640×480** and there is no scaler in the path.
+> `ee_videomode` is an Amlogic concept (it writes to
+> `/sys/class/display/mode`), a path that does not exist on this Allwinner
+> platform — the key is **inert**.
+>
+> Do not change `ee_videomode` expecting a gain: there is none.
 
-```
-ee_videomode=1080p60hz
-```
+The real frontend cost is elsewhere.
 
-The real panel is **640×480** (`lcd_x` / `lcd_y` from `script.bin`, see
-[device-tree.en.md](device-tree.en.md)). The system renders at 1920×1080 and
-scales down to 640×480 — **6.75× more pixels than the screen has**, on a
-Mali-400.
-
-Other waste in `retroarch.cfg`:
+### `retroarch.cfg`
 
 | Key | Stock value | Problem |
 |---|---|---|
@@ -174,6 +178,38 @@ Other waste in `retroarch.cfg`:
 | `menu_shader_pipeline` | `1` | shader-animated background |
 | `auto_shaders_enable` | `true` | auto-loads shaders — worst case on this GPU |
 | `menu_dynamic_wallpaper_enable` | `true` | wallpaper decoding |
+| `menu_show_sublabels` | `true` | a second text line per item |
+| `menu_ticker_smooth` | `true` | smooth title scrolling = continuous redraw |
+| `log_verbosity` | `true` | verbose logging, written to the card for nothing |
+| `menu_widget_scale_factor` | `2.0` | widgets at 2× scale on a 640×480 panel |
+
+### RGUI aspect ratio is wrong
+
+```
+rgui_aspect_ratio = "6"
+```
+
+Value 6 is **3:2 centered**. The panel is **4:3** (640×480), which is value
+`0`. With 6, RGUI draws letterboxed and wastes screen area.
+
+### `es_settings.cfg`
+
+| Key | Stock value | Problem |
+|---|---|---|
+| `GamelistViewStyle` | `detailed` | renders image and metadata per item |
+| `ScreenSaverBehavior` | `slideshow` | decodes images in a loop |
+| `ScrapeVideos` | `true` | video previews inside the gamelist |
+
+`TransitionStyle` and `GameTransitionStyle` already ship as `instant` —
+those were right from the factory.
+
+### `emuelec.conf`
+
+| Key | Stock value | Problem |
+|---|---|---|
+| `audio.bgmusic` | `1` | continuous music decoding in the frontend |
+| `updates.enabled` | `1` | no wifi, and no real upstream for this fork |
+| `system.timezone` | `America/Mexico_City` | vendor default |
 
 **Quick on-device check:** if the RetroArch menu opens in RGUI (plain text)
 instead of XMB (3D waves), the fixes are active.

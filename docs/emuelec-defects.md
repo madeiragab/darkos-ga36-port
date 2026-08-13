@@ -164,19 +164,23 @@ diferenças, montou.
 
 ---
 
-## 4. Desempenho: renderização em 1080p num painel de 640×480
+## 4. Desempenho do frontend
 
-`/storage/.config/emuelec/configs/emuelec.conf`:
+> **Correção.** Uma versão anterior deste documento afirmava que o sistema
+> renderizava a 1920×1080 e reduzia para 640×480, por causa de
+> `ee_videomode=1080p60hz` no `emuelec.conf`. **Isso está errado.**
+>
+> O `disp_init` do `script.bin` traz `fb0_width = 0`, `fb0_height = 0` e
+> `fb0_scaler_mode_enable = 0`. Zero significa "usar o tamanho do painel",
+> então o framebuffer **já é 640×480** e não há scaler no caminho.
+> `ee_videomode` é um conceito Amlogic (escreve em `/sys/class/display/mode`),
+> caminho que não existe nesta plataforma Allwinner — a chave é **inerte**.
+>
+> Não altere `ee_videomode` esperando ganho: não há nenhum.
 
-```
-ee_videomode=1080p60hz
-```
+O custo real do frontend está em outro lugar.
 
-O painel real é **640×480** (`lcd_x` / `lcd_y` do `script.bin`, ver
-[device-tree.md](device-tree.md)). O sistema renderiza a 1920×1080 e reduz
-para 640×480 — **6,75× mais pixels do que a tela tem**, numa Mali-400.
-
-Outros desperdícios no `retroarch.cfg`:
+### `retroarch.cfg`
 
 | Chave | Valor de fábrica | Problema |
 |---|---|---|
@@ -184,6 +188,38 @@ Outros desperdícios no `retroarch.cfg`:
 | `menu_shader_pipeline` | `1` | fundo animado por shader |
 | `auto_shaders_enable` | `true` | carrega shader automático — pior caso nessa GPU |
 | `menu_dynamic_wallpaper_enable` | `true` | decodificação de wallpaper |
+| `menu_show_sublabels` | `true` | segunda linha de texto por item |
+| `menu_ticker_smooth` | `true` | rolagem suave de títulos = redraw contínuo |
+| `log_verbosity` | `true` | log verboso, gravando no cartão sem utilidade |
+| `menu_widget_scale_factor` | `2.0` | widgets em escala 2× num painel de 640×480 |
+
+### Erro de proporção no RGUI
+
+```
+rgui_aspect_ratio = "6"
+```
+
+O valor 6 é **3:2 centralizado**. O painel é **4:3** (640×480), que é o
+valor `0`. Com 6, o RGUI desenha em letterbox e desperdiça área de tela.
+
+### `es_settings.cfg`
+
+| Chave | Valor de fábrica | Problema |
+|---|---|---|
+| `GamelistViewStyle` | `detailed` | renderiza imagem e metadados por item |
+| `ScreenSaverBehavior` | `slideshow` | decodifica imagens em loop |
+| `ScrapeVideos` | `true` | preview em vídeo dentro do gamelist |
+
+`TransitionStyle` e `GameTransitionStyle` já vêm como `instant` — esses
+estavam certos de fábrica.
+
+### `emuelec.conf`
+
+| Chave | Valor de fábrica | Problema |
+|---|---|---|
+| `audio.bgmusic` | `1` | decodificação contínua de música no frontend |
+| `updates.enabled` | `1` | sem wifi e sem upstream real para este fork |
+| `system.timezone` | `America/Mexico_City` | padrão do vendor |
 
 **Verificação rápida no aparelho:** se o menu do RetroArch abrir em RGUI
 (texto simples) em vez de XMB (ondas 3D), as correções estão ativas.
