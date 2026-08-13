@@ -40,7 +40,7 @@ verificáveis na imagem e a correção é reversível:
 
 - perda de save ao desligar;
 - partição de ROMs inutilizável na imagem de recovery;
-- renderização em 1080p num painel de 640×480.
+- proporção errada no RGUI e custo de render do frontend.
 
 Ver [emuelec-defects.md](emuelec-defects.md).
 
