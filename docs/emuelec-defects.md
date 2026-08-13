@@ -61,14 +61,33 @@ Comportamento observado na unidade: segurar o botão de desligar **perde** o
 save. Sair do emulador com `Start` + `Select` (volta ao EmulationStation)
 **grava**.
 
-Isso é a assinatura exata do problema 1.1: a SRAM só é escrita quando o core
-é descarregado. `Start`+`Select` descarrega o core; o botão de power não —
-ele corta na PMIC (AXP22x) antes de qualquer flush.
+**Causa encontrada, lendo o `SYSTEM`.** `/etc/systemd/logind.conf` traz:
 
-Enquanto o handler do botão não for corrigido, **o desligamento seguro é
-`Start`+`Select` primeiro, botão depois**.
+```ini
+[Login]
+HandlePowerKey=ignore
+```
 
-O handler vive no `SYSTEM` (squashfs lzo) e ainda não foi inspecionado.
+O sistema **recebe** o evento `KEY_POWER` e o descarta. Nada trata o botão.
+A única coisa que acontece é o corte por hardware da PMIC (AXP22x) quando
+você segura — e esse corte não avisa ninguém, então nada é gravado.
+
+**Corrigível sem tocar no squashfs.** `/etc/systemd/logind.conf.d` é um
+symlink para `/storage/.config/logind.conf.d`, que fica no ext4 gravável. Um
+drop-in ali sobrescreve o padrão:
+
+```ini
+[Login]
+HandlePowerKey=poweroff
+```
+
+Com isso, um **toque curto** desliga limpo: o systemd para os serviços, o
+RetroArch recebe `SIGTERM` e grava a SRAM, e as partições são desmontadas.
+Ferramenta: [`../tools/enable_powerkey.py`](../tools/enable_powerkey.py).
+
+**Segurar o botão continua cortando na PMIC** — isso é hardware, não tem
+correção por software. Depois da correção, o uso certo é *tocar*, não
+segurar.
 
 ### 1.5 Sem tuning de writeback
 
