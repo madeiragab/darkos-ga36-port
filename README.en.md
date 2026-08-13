@@ -26,17 +26,23 @@ For that reason, **a full SD backup is mandatory** before any experiment.
 
 ## 🔍 Technical summary (confirmed)
 
-- **Board:** GA36-MB
-- **Revision documented in this repo:** V1.1 (silkscreen: `GA36-MB V1.1-20251025`)
-- **Actual SoC:** Allwinner A33 (sunxi)
-- **GPU:** Mali-400 (confirmed by EmuELEC logs)
-- **Kernel:** Linux sunxi 3.4.x (legacy)
-- **Boot:** Android-style `bootimg` + `ramdisk`
-- **Hardware configuration:** `script.bin` (Allwinner legacy, not DTB)
-- **System:** EmuELEC 4.7 customized specifically for the A33
+- **Board:** GA36-MB, revision V1.1 (silkscreen: `GA36-MB V1.1-20251025`)
+- **Actual SoC:** Allwinner **A33** — codename `sun8iw5p1`, Cortex-A7 quad,
+  **ARMv7 32-bit**
+- **GPU:** Mali-400 — GLES 2.0, **no S3TC**
+- **RAM:** 1 GB DDR3 @552 MHz, **~850 MB usable** (176 MB CMA +
+  150 MB carveout)
+- **Panel:** **640 × 480**, MIPI DSI 2 lanes, `jd9366_8inch`
+- **PMIC:** AXP22x
+- **Kernel:** Linux sunxi **3.4.39**, built with gcc 4.6.3 (2012)
+- **Boot:** Android `boot.img` + `script.bin` (Allwinner legacy, not DTB)
+- **Debug serial:** **UART2 — TX=PB0, RX=PB1, 115200 8N1**
+- **System:** EmuELEC 4.7, unofficial fork adapted to the A33
 
-The "RK3326" silkscreen on the chip is **deliberate remarking**.
-Electrical behaviour, the kernel, the bootloader and the GPU all confirm this is **not a real RK3326**.
+The "RK3326" silkscreen on the chip is **deliberate remarking**. The A33
+identification does not rest on observed behaviour but on four pieces of
+evidence read directly from the image — see
+[docs/image-autopsy.en.md](docs/image-autopsy.en.md).
 
 ---
 
@@ -46,12 +52,16 @@ Electrical behaviour, the kernel, the bootloader and the GPU all confirm this is
 |---|---|
 | [docs/scope.en.md](docs/scope.en.md) | What is in and out of scope, and the criterion for "confirmed" |
 | [docs/hardware.en.md](docs/hardware.en.md) | Components, technical evidence and board photos |
-| [docs/boot-chain.en.md](docs/boot-chain.en.md) | Full boot chain and why each link matters |
-| [docs/device-tree.en.md](docs/device-tree.en.md) | Legacy `script.bin` — what it is and why you cannot "just swap the DTB" |
-| [docs/kernel.en.md](docs/kernel.en.md) | sunxi 3.4.x kernel, how to confirm it and why not to recompile |
-| [docs/storage.en.md](docs/storage.en.md) | Partition layout and how to back up the SD correctly |
+| **[docs/image-autopsy.en.md](docs/image-autopsy.en.md)** | **Image autopsy: offsets, structures and defects, with method** |
+| **[docs/serial-console.en.md](docs/serial-console.en.md)** | **Serial console — pins, wiring and capture** |
+| [docs/boot-chain.en.md](docs/boot-chain.en.md) | Boot chain with confirmed offsets and the U-Boot environment |
+| [docs/device-tree.en.md](docs/device-tree.en.md) | `script.bin` — extracted values and the path to a mainline DT |
+| [docs/kernel.en.md](docs/kernel.en.md) | Kernel 3.4.39, what blocks modernisation and what does not |
+| [docs/storage.en.md](docs/storage.en.md) | Partition layout, backup, and the Windows-specific hazard |
+| **[docs/emuelec-defects.en.md](docs/emuelec-defects.en.md)** | **Stock system defects: save loss, fsck, performance** |
 | [docs/darkos-expectations.en.md](docs/darkos-expectations.en.md) | What would be missing for a real port to happen |
 | [failures.en.md](failures.en.md) | Failure log — read before attempting anything |
+| **[tools/](tools/)** | **Offline analysis scripts (pure Python, read-only)** |
 | [reference/autopsy/](reference/autopsy) | Catalogue of the reference autopsy artefacts |
 
 ---
@@ -80,12 +90,16 @@ Porting modern systems (e.g. DarkOS) **is not an immediate goal** and will only 
 ├─ docs/
 │  ├─ scope.md                 → What is in and out of scope
 │  ├─ hardware.md              → Detailed board documentation
+│  ├─ image-autopsy.md         → Image autopsy: offsets and defects
+│  ├─ serial-console.md        → Serial console (PB0/PB1 @115200)
 │  ├─ boot-chain.md            → Boot chain (BROM → U-Boot → kernel)
-│  ├─ device-tree.md           → Legacy script.bin (not a DTB)
-│  ├─ kernel.md                → sunxi 3.4.x kernel and why not to recompile
+│  ├─ device-tree.md           → script.bin and extracted values
+│  ├─ kernel.md                → Kernel 3.4.39 and the path to mainline
 │  ├─ storage.md               → Partition layout and SD backup
+│  ├─ emuelec-defects.md       → Stock system defects
 │  ├─ darkos-expectations.md   → Why the port has not happened yet
 │  └─ reference_autopsy.md     → Summary of the external (third-party) autopsy
+├─ tools/                      → Analysis scripts (Python, read-only)
 ├─ reference/autopsy/          → Catalogue of reference artefacts
 └─ images/                     → Board and component photos
 ```
@@ -105,8 +119,11 @@ A summary of that analysis is in [docs/reference_autopsy.en.md](docs/reference_a
 ## ❌ What NOT to do
 
 - Do not format the original SD without a backup
+- **Do not copy files to the `Volumn` partition** — Windows mounts it with
+  the wrong size and can write over `boot.img`
+- Do not let Windows "repair" any volume on the card
 - Do not flash generic EmuELEC images
-- Do not try modern kernels without understanding the boot chain
+- Do not try modern kernels before having a serial console
 - Do not assume RK3326 compatibility
 
 These actions almost always result in a permanent brick.
@@ -120,11 +137,18 @@ These actions almost always result in a permanent brick.
 | Hardware identified (GA36-MB V1.1 / Allwinner A33) | ✅ Confirmed |
 | Fake RK3326 confirmed | ✅ Confirmed |
 | Working system preserved (SD backup) | ✅ Done |
-| Boot chain documented at a high level | ✅ Done |
-| Diagnostic dumps under version control | ⬜ Pending |
-| Bootimg extracted and analysed | ⬜ Pending |
-| `script.bin` extracted and translated to FEX | ⬜ Pending |
-| Serial access (TX/RX/GND pads) | ⬜ Pending |
+| Boot chain documented with exact offsets | ✅ Done |
+| U-Boot environment extracted | ✅ Done |
+| `script.bin` located and parsed | ✅ Done |
+| Serial console pins identified | ✅ **PB0/PB1 @115200** |
+| `boot.img` analysed (header, kernel, initramfs) | ✅ Done |
+| Analysis tooling under version control | ✅ Done |
+| Serial boot log captured | ⬜ Pending (requires wiring the adapter) |
+| `script.bin` converted to full FEX | ⬜ Pending |
+| Control GPIO mapped | ⬜ Pending |
+| `jd9366` panel DSI sequence extracted | ⬜ Pending |
+| Board device tree written | ⬜ Pending |
+| Console diagnostic dumps under version control | ⬜ Pending |
 
 Details of the pending items in [docs/scope.en.md](docs/scope.en.md) and [docs/darkos-expectations.en.md](docs/darkos-expectations.en.md).
 

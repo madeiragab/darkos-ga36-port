@@ -22,29 +22,127 @@ sha256sum backup-sd-original.img > backup-sd-original.img.sha256
 
 Guarde a imagem **e** o hash em pelo menos dois lugares diferentes.
 
-## Layout de partições
+---
 
-Referência da autópsia (revisão V1.0) — comparar com a sua mídia antes de
-assumir que é idêntico:
+## ⚠️ Perigo específico do Windows
 
-| Partição | Tipo | Tamanho aprox. | Conteúdo |
-|---|---|---|---|
-| `img1` | FAT32 | grande | ROMs, saves |
-| `img2` | FAT16 | ~32 MB | `magic.bin`, recursos de boot |
-| `img5` | raw | ~16 MB | configuração do U-Boot |
-| `img6` | bootimg | ~32 MB | Android bootimg (kernel + ramdisk) |
-| `img7` | squashfs | ~768 MB | SYSTEM do EmuELEC (somente leitura) |
-| `img8` | overlay rw | ~1,5 GB | userdata, configs, cores |
+**Esta é a forma mais provável de destruir o console por acidente, e ela
+não exige que você faça nada de errado conscientemente.**
+
+A partição `Volumn` declara tamanhos contraditórios:
+
+| Fonte | Tamanho |
+|---|---|
+| Entrada da MBR | **32 MB** |
+| BPB dentro da partição | **128 MB** |
+
+O Windows monta o volume usando o **BPB**. Ele acredita que pode escrever
+de 36 MB a 164 MB do cartão. Nessa faixa estão:
+
+- **`boot.img` em 84 MB**
+- **`SYSTEM` em 116 MB**
+
+E o Windows escreve por conta própria: ao montar o volume ele cria
+`System Volume Information`.
+
+**Regras práticas:**
+
+- Nunca copie nada para a partição `Volumn` (aparece como `D:` ou similar).
+- Se o Windows perguntar "é preciso formatar o disco", clique **Cancelar**.
+- Nunca aceite "reparar" esse volume.
+- Ao gravar uma imagem, deixe o disco desmontado e retire o cartão sem
+  deixar o Windows remontá-lo. Desligar o automount ajuda:
+
+```
+diskpart
+automount disable
+```
+
+(reversível com `automount enable`)
+
+Para saber se o dano já ocorreu, use
+[`tools/verify_card.py`](../tools/verify_card.py) — é somente leitura.
+
+---
+
+## Layout de partições (confirmado)
+
+Medido na imagem de recovery da unidade V1.1. Método e offsets em
+[image-autopsy.md](image-autopsy.md).
+
+### MBR primária
+
+| Slot | Tipo | Início (LBA) | Tamanho | Conteúdo |
+|---|---|---|---|---|
+| p1 | `0x0b` FAT32 | 4 956 161 | 5,42 MB¹ | ROMs, saves |
+| p2 | `0x06` FAT16 | 73 728 | 32 MB | `Volumn` — fontes, bootlogo, `magic.bin` |
+| p3 | `0x85` estendida | 1 | 2420 MB | contêiner da área do fabricante |
+
+¹ tamanho da imagem de recovery distribuída — ver "Defeitos" abaixo.
+
+### Partições lógicas (dentro de p3)
+
+| Dispositivo | Início | Tamanho | Filesystem | Papel |
+|---|---|---|---|---|
+| `mmcblk0p5` | 68 MB | 16 MB | raw | environment do U-Boot |
+| `mmcblk0p6` | 84 MB | 32 MB | raw | `boot.img` (kernel + initramfs) |
+| `mmcblk0p7` | 116 MB | 768 MB | FAT16 `EMUELEC` | `/flash` — contém `SYSTEM` |
+| `mmcblk0p8` | 884 MB | 1536 MB | ext4 | `/storage` |
+
+O U-Boot referencia estas partições explicitamente:
+`root=/dev/mmcblk0p7`, `disk=/dev/mmcblk0p8`.
 
 Pontos que costumam pegar quem mexe pela primeira vez:
 
-- **`img5` é raw**: não tem sistema de arquivos. Ferramentas gráficas de
-  particionamento a tratam como "espaço não alocado" e a destroem sem aviso.
-- **`img7` é squashfs**: somente leitura por design. Alterações de sistema
-  vivem no overlay `img8`.
+- **p5 e p6 são raw**: não têm sistema de arquivos. Ferramentas gráficas de
+  particionamento as tratam como "espaço não alocado" e as destroem sem
+  aviso.
+- **`SYSTEM` é squashfs somente leitura** (405 MB, comprimido com lzo).
+  Alterações de sistema vivem no ext4 de `mmcblk0p8`.
+- **p2 e p3 se sobrepõem** na tabela — p2 fica dentro da faixa de p3. É
+  assim de fábrica e funciona; não "conserte".
 - **A ordem e os offsets importam** — ver [boot-chain.md](boot-chain.md).
 
+---
+
+## Defeitos da imagem de recovery distribuída
+
+Além do problema do `Volumn` acima:
+
+**Partição de ROMs truncada.** A entrada da MBR declara 11 099 setores
+(5,42 MB) enquanto o BPB interno declara 48 779 MB. Quem grava a imagem
+recebe uma partição inutilizável e o EmulationStation falha com
+`we can't find any systems`.
+
+**MBR com erro de um setor.** A entrada aponta LBA 4956161; o boot sector
+FAT32 real está em 4956160 — que também é o valor alinhado a 2048.
+
+Correção: reescrever a entrada da MBR (início 4956160, tamanho até o fim do
+cartão) e gerar um FAT32 novo com label `EEROMS`. O Windows não formata
+FAT32 acima de 32 GB com as ferramentas nativas, então isso precisa ser
+feito com `mkfs.vfat -F 32` no Linux ou com um gerador próprio.
+
+Depois de corrigir, o EmulationStation ainda esconde qualquer sistema cuja
+pasta esteja vazia — é preciso pelo menos uma ROM. A lista de 106 pastas
+esperadas está em `/storage/.config/emulationstation/es_systems.cfg`, que
+pode ser lido sem montar nada:
+
+```bash
+python tools/ext4_reader.py IMAGEM 0x37400000 \
+  cat:/.config/emulationstation/es_systems.cfg
+```
+
+---
+
 ## Como documentar a sua mídia
+
+Offline, a partir de uma imagem ou do próprio cartão:
+
+```bash
+python tools/partition_map.py backup-sd-original.img
+python tools/boot_header.py  backup-sd-original.img
+python tools/uboot_env.py    backup-sd-original.img
+```
 
 No console:
 
@@ -53,16 +151,8 @@ mkdir -p dumps/bootlogs
 cat /proc/cpuinfo   > dumps/bootlogs/cpuinfo.txt
 uname -a            > dumps/bootlogs/uname.txt
 dmesg               > dumps/bootlogs/dmesg.txt
+free -h             > dumps/bootlogs/meminfo.txt
 ls -la /lib/modules > dumps/bootlogs/modules.txt
-```
-
-No PC, com o SD inserido:
-
-```bash
-mkdir -p dumps/partitions
-lsblk -o NAME,SIZE,FSTYPE,LABEL,PARTUUID,MOUNTPOINT > dumps/partitions/lsblk.txt
-blkid                                               > dumps/partitions/blkid.txt
-sudo fdisk -l /dev/sdX                              > dumps/partitions/fdisk.txt
 ```
 
 > A pasta `dumps/` ainda **não existe** neste repositório — os comandos
@@ -72,6 +162,8 @@ sudo fdisk -l /dev/sdX                              > dumps/partitions/fdisk.txt
 ## O que nunca fazer
 
 - Formatar o SD original, mesmo "só uma partição"
+- Copiar arquivos para a partição `Volumn`
+- Deixar o Windows "reparar" qualquer volume do cartão
 - Reparticionar com layout novo
 - Gravar imagem genérica de EmuELEC por cima
 - Expandir/mover partições com ferramenta gráfica

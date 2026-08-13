@@ -25,17 +25,65 @@ The console **does not use the advertised SoC**. It is a clone with a remarked c
 
 In dependency order — each item requires the previous one:
 
-1. **Intact backup of the original SD**, verified by hash.
-   → see [storage.en.md](storage.en.md)
-2. **Fully mapped boot chain**: offsets, U-Boot environment, exact `boot.img` format.
-   → see [boot-chain.en.md](boot-chain.en.md)
-3. **`script.bin` extracted and translated** to readable FEX, with GPIO, display, DRAM and clocks documented.
-   → see [device-tree.en.md](device-tree.en.md)
-4. **Working serial access** (TX/RX/GND pads identified and soldered). Without a serial console, a boot failure is a black screen with no diagnosis — it is the difference between debugging and guessing.
-5. **A new Device Tree built from scratch** for the A33, from the values obtained in step 3, plus a mainline kernel with A33 and Mali-400 support.
-6. **A tested recovery path** (FEL mode or SD re-flash) — proven to work **before** the first modified boot attempt.
+1. ✅ **Intact backup of the original SD**, verified by hash.
+   → [storage.en.md](storage.en.md)
+2. ✅ **Fully mapped boot chain**: offsets, U-Boot environment, exact
+   `boot.img` format. **Done** by offline parsing of the image.
+   → [boot-chain.en.md](boot-chain.en.md), [image-autopsy.en.md](image-autopsy.en.md)
+3. 🟡 **`script.bin` extracted and translated.** Located at `0x1366000`,
+   78 sections. Display, UART and PMIC documented. **Missing** the control
+   GPIO and the full FEX conversion. → [device-tree.en.md](device-tree.en.md)
+4. 🟡 **Serial access.** Pins identified: **UART2, TX=PB0, RX=PB1,
+   115200 8N1**, already enabled in U-Boot. **Missing** the correlation with
+   the PCB pads and the soldering. → [serial-console.en.md](serial-console.en.md)
+5. ⬜ **A new Device Tree for the A33**, plus a mainline kernel with Lima.
+   **This is the real remaining work.**
+6. 🟡 **A tested recovery path.** SD re-flash has been validated in practice
+   (the console was recovered twice). FEL mode has not been tested.
 
-Today steps 2 through 6 are pending. Step 1 is done.
+Step 5 is the only one fully open, and inside it the concrete item is
+**writing a driver for the `jd9366` panel**, which does not exist in
+mainline.
+
+## What changed since the first version of this document
+
+The phrase "it cannot be ported" was imprecise. The accurate one is: **the
+A33 has mainline support; what is missing is integrating this board.**
+
+| Component | Mainline status |
+|---|---|
+| SoC `sun8i-a33` | `sun8i-a33.dtsi` |
+| Mali-400 GPU | **Lima** (Mesa), GLES 2.0 |
+| Display Engine | `sun4i-drm` + `sun8i-mixer` |
+| MIPI DSI | `sun6i-mipi-dsi` |
+| AXP223 PMIC | `axp20x` |
+| MMC / USB / I2C / UART | supported |
+| `jd9366` panel | **missing** |
+
+The order that works: **serial first, device tree next, kernel last.**
+Swapping the kernel before having serial is blind debugging — every failure
+produces the same black screen.
+
+## About PortMaster and Stardew Valley
+
+A common motivation for people arriving at this console, worth recording so
+no false expectations are set.
+
+PortMaster **supports armhf**, so the infrastructure is not blocked by
+architecture. Light 2D ports have a real chance. But the Stardew Valley port
+published for the R36S **does not transfer**:
+
+| | R36S (the port's target) | GA36-MB |
+|---|---|---|
+| Architecture | ARMv8 **64-bit** | ARMv7 **32-bit** |
+| GPU | Mali-G31, GLES 3.2 | Mali-400, GLES 2.0, **no S3TC** |
+| Usable RAM | 1 GB | ~850 MB |
+
+The game's textures are DXT-compressed; without hardware S3TC the
+decompression falls to software, consuming exactly the RAM and CPU that are
+already short. **A new kernel changes none of those lines** — the limit is
+GPU and memory. See [kernel.en.md](kernel.en.md), section "Limits no kernel
+can fix".
 
 ## Why documenting came first
 
