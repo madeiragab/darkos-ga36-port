@@ -124,10 +124,17 @@ frontend.
 `autosave_interval`, `menu_driver` e mais 7 chaves do `retroarch.cfg`.
 **Resultado:** nenhuma das chaves mudou. Confirmado lendo o
 `retroarch.cfg` vivo do cartão.
-**Diagnóstico:** este fork do vendor não chama o hook. O `autostart.sh`
-ainda traz o comentário do upstream mandando usar o `custom_start.sh`, mas
-a chamada não acontece. O handler fica no `SYSTEM` (squashfs **lzo**), que
-ainda não foi aberto.
+**Diagnóstico:** **confirmado lendo o `SYSTEM`.** Em
+`/usr/bin/emuelec_autostart.sh` a chamada está comentada:
+
+```sh
+# run custom_start before FE scripts
+#/storage/.config/custom_start.sh before &
+```
+
+O arquivo ainda traz, logo acima, o comentário do upstream mandando usar o
+`custom_start.sh` — que ficou órfão. Corrigir na origem exigiria repack do
+squashfs; por isso a solução usa `/flash/post-flash.sh` e escrita direta.
 **Recuperação:** não foi necessária — o hook simplesmente não roda, nada
 quebrou.
 **Lição:** neste sistema, alterar configuração exige escrever direto no
