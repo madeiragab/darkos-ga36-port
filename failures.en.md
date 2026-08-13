@@ -112,10 +112,18 @@ EmuELEC itself as the place for boot scripts, would run before the frontend.
 `autosave_interval`, `menu_driver` and 7 other `retroarch.cfg` keys.
 **Result:** none of the keys changed. Confirmed by reading the live
 `retroarch.cfg` off the card.
-**Diagnosis:** this vendor fork does not call the hook. `autostart.sh` still
-carries the upstream comment telling you to use `custom_start.sh`, but the
-call never happens. The handler lives in `SYSTEM` (**lzo** squashfs), which
-has not been opened yet.
+**Diagnosis:** **confirmed by reading `SYSTEM`.** In
+`/usr/bin/emuelec_autostart.sh` the call is commented out:
+
+```sh
+# run custom_start before FE scripts
+#/storage/.config/custom_start.sh before &
+```
+
+The file still carries, just above it, the upstream comment telling you to
+use `custom_start.sh` — now orphaned. Fixing it at the source would require
+repacking the squashfs, which is why the solution uses
+`/flash/post-flash.sh` and direct file writes.
 **Recovery:** none needed — the hook simply does not run, nothing broke.
 **Lesson:** on this system, changing configuration means writing to the file
 directly, not relying on hooks. See
