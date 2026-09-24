@@ -58,6 +58,12 @@ python tools/fix_rom_partition.py --apply
 Reescreve a entrada da MBR (início LBA 4956160, alinhado, até o fim do
 cartão) e gera um FAT32 novo com label `EEROMS`.
 
+> **Imagem V1.2 (20260416, 512 MB de RAM):** mesmo layout de partições, mas
+> a p1 já vem alinhada, com 87 MB e a árvore de pastas do EmuELEC (`bios`,
+> `bezels`, `ports`...). A ferramenta aceita as duas versões. Como o FAT32
+> novo sai vazio, copie o conteúdo da p1 antes se quiser reaproveitar as
+> pastas — menos a `nes`, que traz as ROMs do fabricante.
+
 ## Passo 3 — Criar as pastas de ROMs
 
 O EmulationStation esconde qualquer sistema cuja pasta esteja vazia. Os 106
