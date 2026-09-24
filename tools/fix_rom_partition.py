@@ -10,6 +10,11 @@ FAT32 acima de 32 GB com as ferramentas nativas. Ver docs/storage.md.
 Tambem corrige o erro de um setor: a MBR aponta LBA 4956161 enquanto o
 boot sector real esta em 4956160, que e o valor alinhado a 2048.
 
+A imagem V1.2 (20260416, variante de 512 MB) ja traz o inicio alinhado em
+4956160 e uma p1 de 87 MB (178335 setores) com a arvore de pastas do
+EmuELEC. As duas imagens sao aceitas. O FAT32 novo sai vazio: quem quiser a
+arvore da V1.2 precisa copiar o conteudo antes e devolver depois.
+
 Rode num PowerShell ABERTO COMO ADMINISTRADOR:
     python fix_rom_partition.py --apply
 Sem --apply, so simula.
@@ -203,9 +208,9 @@ def main():
     zeroed = e == b"\x00" * 16
     if zeroed:
         print("  entrada 1 esta zerada — retomando execucao interrompida")
-    elif cur_start != EXPECT_START:
+    elif cur_start not in (EXPECT_START, NEW_START):  # V1.1 errado / V1.2 ja alinhado
         raise SystemExit(f"inicio inesperado ({cur_start}). Abortado.")
-    elif cur_cnt > 100000:
+    elif cur_cnt > 1_000_000:  # V1.2 traz 178335 setores (87 MB)
         raise SystemExit(f"p1 ja parece corrigida ({cur_cnt} setores). Abortado.")
 
     new_entry = bytearray(16)
